@@ -33,14 +33,17 @@ public class ZigZagPuzzle {
 		});
 		
 		System.out.println("\n\n");
+		System.out.println("Words to be found:\n");
 		for (Word word: game.getWords()) {
 			System.out.println(Utils.padWitZeros(word.id, 3) + ": "+word.word);
 		}
 
 		System.out.println("\n\n");
 
+		System.out.println("Game schema:\n");
 		System.out.println(game.dump(false));
 
+		System.out.println("Solution (word IDs):\n");
 		System.out.println(game.dump(true));
 
 		System.out.println("\n\n");
