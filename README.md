@@ -1,6 +1,6 @@
 # Zig-Zag puzzle
 
-Simple zig-zag puzzle generato to play at home, based on the italian dictionary.
+Simple zig-zag puzzle generator to play at home, based on the italian dictionary.
 
 Run the ZigZagPuzzle class to generate a random puzzle.
 
