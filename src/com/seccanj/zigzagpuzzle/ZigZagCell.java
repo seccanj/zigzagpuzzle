@@ -6,6 +6,8 @@ public class ZigZagCell {
 	
 	private String letter;
 	
+	private boolean reserved;
+	
 	private String word;
 	
 	private int positionInWord;
@@ -68,6 +70,14 @@ public class ZigZagCell {
 
 	public void setWordId(int wordId) {
 		this.wordId = wordId;
+	}
+
+	public boolean isReserved() {
+		return reserved;
+	}
+
+	public void setReserved(boolean reserved) {
+		this.reserved = reserved;
 	}
 	
 }

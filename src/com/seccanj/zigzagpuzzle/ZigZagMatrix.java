@@ -28,12 +28,15 @@ public class ZigZagMatrix {
 			this.dy = dy;
 		}
 	}
+
+	private static final int MAX_TRIES = 30;
 	
 	public  ZigZagCell[][] cells;
 	
-	private List<String> words = new ArrayList<>();
+	private List<Word> words = new ArrayList<>();
 	
 	private int minLength = 1000;
+	private int numBlanks = 0;
 
 	public ZigZagMatrix(int numRows, int numCols) {
 		cells = new ZigZagCell[numRows][];
@@ -51,37 +54,10 @@ public class ZigZagMatrix {
 
 		System.out.println("Placing word "+wordId+" of desired length "+desiredLen);
 		
-		MatrixPosition startPosition = findFreePosition();
-		
-		if (startPosition != null) {
-			List<MatrixPosition> path = new ArrayList<>();
-			path.add(startPosition);
+		List<MatrixPosition> path = findLongestPath(desiredLen);
 			
-			MatrixPosition currPosition = startPosition;
-			
-			int actualLength = 1;
-			while (actualLength < desiredLen) {
-				List<MatrixPosition> freeNextPositions = new ArrayList<>();
-				for (Direction d: Direction.directions) {
-					MatrixPosition p = getNextCell(currPosition, d);
-					
-					if (p != null) {
-						freeNextPositions.add(p);
-					}
-				}
-				
-				if (!freeNextPositions.isEmpty()) {
-					currPosition = freeNextPositions.get((int)Math.floor(Math.random() * freeNextPositions.size()));
-					path.add(currPosition);
-					
-					actualLength++;
-				} else {
-					break;
-				}
-			}
-			
-			System.out.println("Found a path of length "+actualLength+" starting from position ("+startPosition.getRow()+", "+startPosition.getCol()+")");
-			
+		if (path != null && path.size() > 0) {
+			int actualLength = path.size();
 			if (actualLength > 1 && actualLength < minLength) {
 				minLength = actualLength;
 			}
@@ -89,9 +65,16 @@ public class ZigZagMatrix {
 			String word = null;
 			if (actualLength > 1) {
 				word = dictionary.findRandomWord(actualLength);
-				words.add(word);
+				
+				Word w = new Word();
+				w.word = word;
+				w.id = wordId;
+				
+				words.add(w);
+				
 			} else {
 				word = "#";
+				numBlanks++;
 			}
 			
 			if (word != null) {
@@ -119,6 +102,8 @@ public class ZigZagMatrix {
 
 			} else {
 				System.out.println("Could not find a word of length "+actualLength);
+
+				setPathIsFree(path);
 			}
 		} else {
 			System.out.println("Could not find a free start position");
@@ -126,6 +111,68 @@ public class ZigZagMatrix {
 		}
 		
 		return isFull;
+	}
+
+	private List<MatrixPosition> findLongestPath(int desiredLen) {
+		List<MatrixPosition> result = null;
+
+		int tries = 0;
+		for (int l=0; l<= desiredLen && tries < MAX_TRIES; l++, tries++) {
+			MatrixPosition startPosition = findFreePosition();
+			
+			if (startPosition != null) {
+				List<MatrixPosition> path = new ArrayList<>();
+				path.add(startPosition);
+				
+				MatrixPosition currPosition = startPosition;
+				
+				int actualLength = 1;
+				while (actualLength < desiredLen) {
+					List<MatrixPosition> freeNextPositions = new ArrayList<>();
+					for (Direction d: Direction.directions) {
+						MatrixPosition p = getNextCell(currPosition, d);
+						
+						if (p != null) {
+							freeNextPositions.add(p);
+						}
+					}
+					
+					if (!freeNextPositions.isEmpty()) {
+						currPosition = freeNextPositions.get((int)Math.floor(Math.random() * freeNextPositions.size()));
+						path.add(currPosition);
+						cells[currPosition.getRow()][currPosition.getCol()].setReserved(true);
+						
+						actualLength++;
+					} else {
+						break;
+					}
+				}
+				
+				System.out.println("Found a path of length "+actualLength+" starting from position ("+startPosition.getRow()+", "+startPosition.getCol()+")");
+				
+				if (result == null || path.size() > result.size()) {
+					result = path;
+				}
+				
+				setPathIsFree(path);
+				
+				if (path.size() >= desiredLen) {
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+		
+		return result;
+	}
+
+	private void setPathIsFree(List<MatrixPosition> path) {
+		for (int l=0; l<path.size(); l++) {
+			MatrixPosition pos = path.get(l);
+			
+			cells[pos.getRow()][pos.getCol()].setReserved(false);;
+		}
 	}
 
 	private MatrixPosition getNextCell(MatrixPosition startPosition, Direction d) {
@@ -138,27 +185,30 @@ public class ZigZagMatrix {
 	}
 
 	private boolean isFree(MatrixPosition p) {
-		return cells[p.getRow()][p.getCol()].getLetter() == null;
+		return isFree(p.getRow(), p.getCol());
+	}
+
+	private boolean isFree(int row, int col) {
+		return cells[row][col].getLetter() == null && !cells[row][col].isReserved();
 	}
 
 	private MatrixPosition findFreePosition() {
-		MatrixPosition position = null;
+		List<MatrixPosition> freePositions = new ArrayList<>();
 		
 		boolean found = false;
-		for (int i=0; i<cells.length && !found; i++) {
+		for (int i=0; i<cells.length; i++) {
 			ZigZagCell[] row = cells[i];
-			for (int j=0; j<row.length && !found; j++) {
-				if (cells[i][j].getWord() == null) {
-					position = new MatrixPosition(i, j);
-					found = true;
+			for (int j=0; j<row.length; j++) {
+				if (isFree(i, j)) {
+					freePositions.add(new MatrixPosition(i, j));
 				}
 			}
 		}
 		
-		return position;
+		return freePositions.isEmpty() ? null : freePositions.get((int)Math.floor(Math.random()*freePositions.size()));
 	}
 	
-	public List<String> getWords() {
+	public List<Word> getWords() {
 		return words;
 	}
 
@@ -166,35 +216,54 @@ public class ZigZagMatrix {
 		return minLength;
 	}
 	
-	public String dump() {
+	public String dump(boolean dumpPaths) {
 		StringBuilder s = new StringBuilder();
 		
 		s.append("=");
 		for (int j=0; j<cells[0].length; j++) {
 			s.append("===");
 		}
-		s.append("=\n");
+		s.append("==\n");
 		
+		s.append("[");
+		for (int j=0; j<cells[0].length; j++) {
+			s.append("   ");
+		}
+		s.append(" ]\n");
+
 		for (int i=0; i<cells.length; i++) {
 			ZigZagCell[] row = cells[i];
 
 			s.append("[");
 
 			for (int j=0; j<row.length; j++) {
-				s.append(" "+row[j].getLetter()+" ");
+				if (dumpPaths) {
+					s.append(" "+Utils.padWitZeros(row[j].getWordId(), 2));
+				} else {
+					s.append(" "+row[j].getLetter().toUpperCase()+" ");
+				}
 			}
 			
-			s.append("]\n");
+			s.append(" ]\n");
+
+			s.append("[");
+			for (int j=0; j<cells[0].length; j++) {
+				s.append("   ");
+			}
+			s.append(" ]\n");
 		}
 
 		s.append("=");
 		for (int j=0; j<cells[0].length; j++) {
 			s.append("===");
 		}
-		s.append("=");
+		s.append("==\n\n");
 		
 		
 		return s.toString();
 	}
 
+	public int getNumBlanks() {
+		return numBlanks;
+	}
 }

@@ -3,6 +3,7 @@ package com.seccanj.zigzagpuzzle;
 public class Word {
 	public String word;
 	public int length;
+	public int id;
 	
 	@Override
 	public boolean equals(Object other) {

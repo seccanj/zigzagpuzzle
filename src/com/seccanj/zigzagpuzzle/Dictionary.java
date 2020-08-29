@@ -15,6 +15,8 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 
 public class Dictionary {
+
+	private static final String ILLEGAL_CHARACTERS = "-'/.1234567890";
 	
 	private static final String SAMPLE_CSV_FILE_PATH = "./italian-dictionary.csv";
 
@@ -33,7 +35,7 @@ public class Dictionary {
             	p.word = nextRecord[0].toLowerCase().trim();
             	p.length = p.word.length();
             	
-            	if (p.length >= 2 && !(p.word.contains("-") || p.word.contains("'") || p.word.contains("/"))) {
+            	if (p.length >= 2 && !containsIllegalCharacters(p.word)) {
                 	tempWords.add(p);
             	}
             }
@@ -91,6 +93,17 @@ public class Dictionary {
 		return true;
 	}
 
+	private boolean containsIllegalCharacters(String word) {
+		for (int i=0; i<ILLEGAL_CHARACTERS.length(); i++) {
+			char c = ILLEGAL_CHARACTERS.charAt(i);
+			if (word.indexOf(c) >= 0) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	public String findRandomWord(int len) {
 		String result = null;
 		
@@ -106,7 +119,15 @@ public class Dictionary {
 		
 		if (!desiredLenWords.isEmpty()) {
 			result = desiredLenWords.get((int)Math.floor(Math.random()*desiredLenWords.size())).word;
+			
 			System.out.println("Found word '"+result+"'");
+
+			result = result.replace('à', 'a');
+			result = result.replace('è', 'e');
+			result = result.replace('é', 'e');
+			result = result.replace('ì', 'i');
+			result = result.replace('ò', 'o');
+			result = result.replace('ù', 'u');
 		}
 		
 		return result;
